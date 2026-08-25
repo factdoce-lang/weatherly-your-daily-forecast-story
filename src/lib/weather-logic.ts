@@ -96,7 +96,7 @@ export function currentHourIndex(bundle: WeatherBundle) {
 }
 
 export function fmtTime(iso: string) {
-  const [, time] = iso.split("T");
+  const time = iso.split("T")[1] ?? "00:00";
   const [hStr, mStr] = time.split(":");
   let h = Number(hStr);
   const suffix = h >= 12 ? "PM" : "AM";
@@ -106,7 +106,8 @@ export function fmtTime(iso: string) {
 
 /** Sub-hour interpolated time label for an event between two hourly samples. */
 function interpolatedLabel(iso: string, fraction: number) {
-  const [date, time] = iso.split("T");
+  const date = iso.split("T")[0] ?? "";
+  const time = iso.split("T")[1] ?? "00:00";
   const [hStr] = time.split(":");
   const minutes = Math.round(fraction * 60);
   const total = Number(hStr) * 60 + minutes;
@@ -125,13 +126,13 @@ export type SkyPhase =
   | "twilight";
 
 export function sunProgress(bundle: WeatherBundle) {
-  const today = bundle.daily[0];
+  const today = bundle.daily[0]!;
   const now = cityNow(bundle);
   const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes();
   const toMin = (iso: string) => {
     const t = iso.split("T")[1] ?? "06:00";
     const [h, m] = t.split(":").map(Number);
-    return h * 60 + m;
+    return (h ?? 0) * 60 + (m ?? 0);
   };
   const rise = toMin(today.sunrise);
   const set = toMin(today.sunset);
@@ -171,7 +172,7 @@ export function nextPrecipWindow(bundle: WeatherBundle): PrecipWindow | null {
   const start = currentHourIndex(bundle);
   const slice = bundle.hourly.slice(start, start + 25);
   const wet = (i: number) =>
-    slice[i] && (slice[i].precipitation >= 0.15 || slice[i].precipProbability >= 55);
+    slice[i] !== undefined && (slice[i]!.precipitation >= 0.15 || slice[i]!.precipProbability >= 55);
 
   let s = -1;
   for (let i = 0; i < slice.length; i++) {
@@ -187,22 +188,22 @@ export function nextPrecipWindow(bundle: WeatherBundle): PrecipWindow | null {
 
   let peak = s;
   for (let i = s; i <= e; i++) {
-    if (slice[i].precipitation > slice[peak].precipitation) peak = i;
+    if (slice[i]!.precipitation > slice[peak]!.precipitation) peak = i;
   }
 
   // Interpolate onset/end inside the boundary hours using probability ramp.
-  const onsetFraction = s === 0 ? 0 : 1 - Math.min(slice[s].precipProbability / 100, 0.9);
-  const endFraction = Math.min(slice[e].precipProbability / 100, 0.9);
+  const onsetFraction = s === 0 ? 0 : 1 - Math.min(slice[s]!.precipProbability / 100, 0.9);
+  const endFraction = Math.min(slice[e]!.precipProbability / 100, 0.9);
 
   return {
-    startIso: slice[s].time,
+    startIso: slice[s]!.time,
     startFraction: onsetFraction,
-    endIso: slice[e].time,
+    endIso: slice[e]!.time,
     endFraction,
-    peakIso: slice[peak].time,
-    peakMm: slice[peak].precipitation,
-    label: `${interpolatedLabel(slice[s].time, onsetFraction)} – ${interpolatedLabel(
-      slice[e].time,
+    peakIso: slice[peak]!.time,
+    peakMm: slice[peak]!.precipitation,
+    label: `${interpolatedLabel(slice[s]!.time, onsetFraction)} – ${interpolatedLabel(
+      slice[e]!.time,
       endFraction,
     )}`,
   };
@@ -371,7 +372,7 @@ export function buildTimeline(bundle: WeatherBundle): TimelineEvent[] {
   // Cloud arrival / clearing (only when no rain dominates the story)
   let prevKind = codeToKind(bundle.current.weatherCode);
   for (let i = 1; i < slice.length && events.length < 7; i++) {
-    const kind = codeToKind(slice[i].weatherCode);
+    const kind = codeToKind(slice[i]!.weatherCode);
     if (kind === prevKind) continue;
     if (kind === "rain" || kind === "heavy-rain" || kind === "thunder") {
       prevKind = kind;
@@ -386,20 +387,20 @@ export function buildTimeline(bundle: WeatherBundle): TimelineEvent[] {
             ? "Overcast moves in"
             : "Clouds arriving";
     events.push({
-      at: fmtTime(slice[i].time),
-      glyph: kindGlyph(kind, slice[i].isDay),
+      at: fmtTime(slice[i]!.time),
+      glyph: kindGlyph(kind, slice[i]!.isDay),
       title,
-      note: `${Math.round(slice[i].temperature)}° • ${slice[i].cloudCover}% cloud`,
+      note: `${Math.round(slice[i]!.temperature)}° • ${slice[i]!.cloudCover}% cloud`,
     });
     prevKind = kind;
   }
 
   // Sun events
-  const today = bundle.daily[0];
+  const today = bundle.daily[0]!;
   const nowMinutes = cityNow(bundle).getUTCHours() * 60 + cityNow(bundle).getUTCMinutes();
   const minutesOf = (iso: string) => {
-    const [h, m] = iso.split("T")[1].split(":").map(Number);
-    return h * 60 + m;
+    const [h, m] = (iso.split("T")[1] ?? "00:00").split(":").map(Number);
+    return (h ?? 0) * 60 + (m ?? 0);
   };
   if (minutesOf(today.sunset) > nowMinutes) {
     events.push({
@@ -422,9 +423,9 @@ export function buildTimeline(bundle: WeatherBundle): TimelineEvent[] {
     if (e.isNow) return -1;
     const m = e.at.match(/^(\d+):(\d+)\s(AM|PM)$/);
     if (!m) return 9999;
-    let h = Number(m[1]) % 12;
-    if (m[3] === "PM") h += 12;
-    let mins = h * 60 + Number(m[2]);
+    let h = Number(m[1]!) % 12;
+    if (m[3]! === "PM") h += 12;
+    let mins = h * 60 + Number(m[2]!);
     if (mins < nowMinutes) mins += 24 * 60;
     return mins;
   };
@@ -450,7 +451,7 @@ export function buildConfidence(bundle: WeatherBundle, leadHours = 12): Confiden
   // Volatility: how often the condition family flips hour to hour.
   let flips = 0;
   for (let i = 1; i < slice.length; i++) {
-    if (codeToKind(slice[i].weatherCode) !== codeToKind(slice[i - 1].weatherCode)) flips++;
+    if (codeToKind(slice[i]!.weatherCode) !== codeToKind(slice[i - 1]!.weatherCode)) flips++;
   }
   const volatility = flips / Math.max(slice.length - 1, 1);
 

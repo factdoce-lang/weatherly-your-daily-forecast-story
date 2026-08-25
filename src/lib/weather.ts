@@ -3,12 +3,12 @@
 export type Place = {
   id: number;
   name: string;
-  admin1?: string;
-  country?: string;
-  country_code?: string;
+  admin1?: string | undefined;
+  country?: string | undefined;
+  country_code?: string | undefined;
   latitude: number;
   longitude: number;
-  timezone?: string;
+  timezone?: string | undefined;
 };
 
 export type WeatherBundle = {
@@ -53,12 +53,14 @@ export type WeatherBundle = {
     uvMax: number;
     windMax: number;
   }>;
-  air?: {
-    aqi: number;
-    pm25: number;
-    pm10: number;
-    ozone: number;
-  };
+  air?:
+    | {
+        aqi: number;
+        pm25: number;
+        pm10: number;
+        ozone: number;
+      }
+    | undefined;
   timezone: string;
   utcOffsetSeconds: number;
 };
@@ -217,15 +219,15 @@ export function placeSlug(p: Place) {
 export function placeFromSlug(slug: string): Place | null {
   const m = slug.match(/^(.*)-(-?\d+\.\d+)_(-?\d+\.\d+)$/);
   if (!m) return null;
-  const label = m[1].split("-").filter(Boolean);
+  const label = m[1]!.split("-").filter(Boolean);
   const name = label
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
   return {
     id: 0,
     name: name || "Location",
-    latitude: Number(m[2]),
-    longitude: Number(m[3]),
+    latitude: Number(m[2]!),
+    longitude: Number(m[3]!),
   };
 }
 
