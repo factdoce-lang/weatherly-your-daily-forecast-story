@@ -108,7 +108,7 @@ export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
   return (
     <main className="relative min-h-screen">
       {/* Hero: living sky */}
-      <div className="relative min-h-[68vh] w-full overflow-hidden">
+      <div className="relative min-h-[420px] w-full overflow-hidden pb-16">
         <SkyStage
           kind={kind}
           phase={phase}
@@ -189,7 +189,7 @@ export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
       </div>
 
       {data && (
-        <div className="relative mx-auto -mt-6 w-full max-w-2xl space-y-4 px-4 pb-16">
+        <div className="relative mx-auto -mt-14 w-full max-w-2xl space-y-4 px-4 pb-16">
           <DecisionCard bundle={data} />
           <Timeline bundle={data} />
           <HourlyStrip bundle={data} />
