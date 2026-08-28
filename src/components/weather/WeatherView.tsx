@@ -11,6 +11,8 @@ import {
 } from "@/lib/weather";
 import { codeToKind, sunProgress } from "@/lib/weather-logic";
 import { PlaceSearch } from "./PlaceSearch";
+import { SiteFooter } from "./SiteFooter";
+import { AboutBlurb } from "./AboutBlurb";
 import { SkyStage } from "./SkyStage";
 import {
   AirComfort,
@@ -97,8 +99,9 @@ export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
     queryKey: ["weather", place?.latitude, place?.longitude],
     queryFn: () => fetchWeather(place as Place),
     enabled: Boolean(place),
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 10 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   const kind = data ? codeToKind(data.current.weatherCode) : "clear";
@@ -198,10 +201,13 @@ export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
           <SunPath bundle={data} />
           <DailyList bundle={data} />
           <p className="pt-2 text-center text-xs text-muted-foreground">
-            Live data from Open-Meteo (ICON · GFS · ECMWF blend) — refreshed every 10 minutes.
+            Live data from Open-Meteo (ICON · GFS · ECMWF blend) — refreshed every 5 minutes.
           </p>
         </div>
       )}
+
+      <AboutBlurb />
+      <SiteFooter />
     </main>
   );
 }
