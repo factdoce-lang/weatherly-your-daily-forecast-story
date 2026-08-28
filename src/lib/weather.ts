@@ -120,6 +120,11 @@ export async function fetchWeather(place: Place): Promise<WeatherBundle> {
     longitude: String(place.longitude),
     timezone: "auto",
     forecast_days: "7",
+    models: "best_match",
+    cell_selection: "nearest",
+    wind_speed_unit: "kmh",
+    precipitation_unit: "mm",
+    temperature_unit: "celsius",
     current:
       "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl,visibility,is_day,uv_index",
     hourly:

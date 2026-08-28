@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -24,6 +25,11 @@ const IndexRoute = IndexRouteImport.update({
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MapRoute = MapRouteImport.update({
@@ -50,6 +56,7 @@ const CitySlugRoute = CitySlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/contact': typeof ContactRoute
   '/map': typeof MapRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/contact': typeof ContactRoute
   '/map': typeof MapRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/contact': typeof ContactRoute
   '/map': typeof MapRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
@@ -74,16 +83,26 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/map' | '/privacy' | '/terms' | '/city/$slug'
+  fullPaths:
+    '/' | '/about' | '/contact' | '/map' | '/privacy' | '/terms' | '/city/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/map' | '/privacy' | '/terms' | '/city/$slug'
+  to:
+    '/' | '/about' | '/contact' | '/map' | '/privacy' | '/terms' | '/city/$slug'
   id:
-    '__root__' | '/' | '/about' | '/map' | '/privacy' | '/terms' | '/city/$slug'
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/contact'
+    | '/map'
+    | '/privacy'
+    | '/terms'
+    | '/city/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  ContactRoute: typeof ContactRoute
   MapRoute: typeof MapRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
@@ -104,6 +123,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/map': {
@@ -140,6 +166,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  ContactRoute: ContactRoute,
   MapRoute: MapRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
