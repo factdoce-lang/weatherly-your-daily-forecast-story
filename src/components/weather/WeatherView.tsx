@@ -13,6 +13,7 @@ import { codeToKind, sunProgress } from "@/lib/weather-logic";
 import { PlaceSearch } from "./PlaceSearch";
 import { SiteFooter } from "./SiteFooter";
 import { AboutBlurb } from "./AboutBlurb";
+import { MenuDrawer } from "./MenuDrawer";
 import { SkyStage } from "./SkyStage";
 import {
   AirComfort,
@@ -129,6 +130,7 @@ export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
 
   return (
     <main className="relative min-h-screen">
+      <MenuDrawer />
       {/* Hero: living sky */}
       <div className="relative min-h-[420px] w-full overflow-hidden pb-16">
         <SkyStage
