@@ -130,6 +130,7 @@ export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
 
   return (
     <main className="relative min-h-screen">
+      <MenuDrawer />
       {/* Hero: living sky */}
       <div className="relative min-h-[420px] w-full overflow-hidden pb-16">
         <SkyStage
