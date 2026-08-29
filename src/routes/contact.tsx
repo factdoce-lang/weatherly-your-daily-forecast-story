@@ -21,7 +21,7 @@ export const Route = createFileRoute("/contact")({
   component: ContactPage,
 });
 
-const EMAIL = "support@weatherly.app";
+const EMAIL = "abhigyansharma43@gmail.com";
 
 function ContactPage() {
   const [name, setName] = useState("");

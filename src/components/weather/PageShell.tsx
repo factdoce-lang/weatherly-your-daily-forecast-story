@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import logo from "@/assets/weatherly-logo.png";
 import { SiteFooter } from "./SiteFooter";
+import { MenuDrawer } from "./MenuDrawer";
 
 export function PageShell({ title, children }: { title: string; children: ReactNode }) {
   return (

@@ -13,6 +13,7 @@ import { codeToKind, sunProgress } from "@/lib/weather-logic";
 import { PlaceSearch } from "./PlaceSearch";
 import { SiteFooter } from "./SiteFooter";
 import { AboutBlurb } from "./AboutBlurb";
+import { MenuDrawer } from "./MenuDrawer";
 import { SkyStage } from "./SkyStage";
 import {
   AirComfort,
