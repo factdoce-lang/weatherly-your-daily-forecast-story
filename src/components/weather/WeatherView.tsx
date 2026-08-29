@@ -36,12 +36,14 @@ const FALLBACK: Place = {
 
 const STORE_KEY = "weatherly:favourites";
 const LAST_KEY = "weatherly:last";
+const LOC_ASKED_KEY = "weatherly:loc-asked";
 
 export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
   const navigate = useNavigate();
   const [place, setPlace] = useState<Place | null>(initialPlace ?? null);
   const [favourites, setFavourites] = useState<Place[]>([]);
   const [locating, setLocating] = useState(false);
+  const [askLocation, setAskLocation] = useState(false);
 
   useEffect(() => {
     try {
@@ -50,11 +52,23 @@ export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
       if (!initialPlace) {
         const last = localStorage.getItem(LAST_KEY);
         setPlace(last ? (JSON.parse(last) as Place) : FALLBACK);
+        if (!last && !localStorage.getItem(LOC_ASKED_KEY) && "geolocation" in navigator) {
+          setAskLocation(true);
+        }
       }
     } catch {
       if (!initialPlace) setPlace(FALLBACK);
     }
   }, [initialPlace]);
+
+  const dismissLocationAsk = () => {
+    setAskLocation(false);
+    try {
+      localStorage.setItem(LOC_ASKED_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+  };
 
   useEffect(() => {
     if (place && !initialPlace) {
@@ -80,6 +94,11 @@ export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
       { timeout: 8000 },
     );
   }, [initialPlace, navigate]);
+
+  const allowLocation = useCallback(() => {
+    dismissLocationAsk();
+    locate();
+  }, [locate]);
 
   const toggleFavourite = () => {
     if (!place) return;
@@ -173,7 +192,14 @@ export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
               </button>
             </div>
 
-            {isLoading && <p className="mt-8 text-sm text-muted-foreground">Reading the sky…</p>}
+            {isLoading && (
+              <div className="mt-6 flex flex-col items-center gap-3" aria-label="Loading weather">
+                <div className="h-20 w-20 animate-pulse rounded-full bg-foreground/15" />
+                <div className="h-10 w-36 animate-pulse rounded-2xl bg-foreground/15 [animation-delay:120ms]" />
+                <div className="h-4 w-52 animate-pulse rounded-full bg-foreground/10 [animation-delay:240ms]" />
+                <p className="mt-1 text-xs text-muted-foreground">Reading the sky…</p>
+              </div>
+            )}
             {isError && (
               <div className="mt-8">
                 <p className="text-sm text-muted-foreground">Couldn't reach the weather service.</p>
@@ -191,6 +217,18 @@ export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
         </div>
       </div>
 
+      {isLoading && !data && (
+        <div className="relative mx-auto -mt-14 w-full max-w-2xl space-y-4 px-4 pb-16" aria-hidden>
+          {[96, 140, 120].map((h, i) => (
+            <div
+              key={i}
+              className="glass animate-pulse rounded-[1.75rem]"
+              style={{ height: h, animationDelay: `${i * 140}ms` }}
+            />
+          ))}
+        </div>
+      )}
+
       {data && (
         <div className="relative mx-auto -mt-14 w-full max-w-2xl space-y-4 px-4 pb-16">
           <DecisionCard bundle={data} />
@@ -203,6 +241,40 @@ export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
           <p className="pt-2 text-center text-xs text-muted-foreground">
             Live data from Open-Meteo (ICON · GFS · ECMWF blend) — refreshed every 5 minutes.
           </p>
+        </div>
+      )}
+
+      {askLocation && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Location access"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-background/60 p-4 backdrop-blur-sm sm:items-center"
+        >
+          <div className="glass animate-rise w-full max-w-sm rounded-[1.75rem] p-6 text-center shadow-2xl">
+            <div aria-hidden className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/20 text-2xl">
+              📍
+            </div>
+            <h2 className="font-display text-lg text-foreground">See your local weather</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Allow location access for real-time weather of your exact area — no searching needed.
+              Your location is only used to fetch the forecast and is never stored or shared.
+            </p>
+            <button
+              type="button"
+              onClick={allowLocation}
+              className="mt-5 w-full rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              {locating ? "Locating…" : "Allow location access"}
+            </button>
+            <button
+              type="button"
+              onClick={dismissLocationAsk}
+              className="mt-2 w-full rounded-full px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Search manually instead
+            </button>
+          </div>
         </div>
       )}
 
