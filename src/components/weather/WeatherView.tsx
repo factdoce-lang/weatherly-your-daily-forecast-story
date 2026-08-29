@@ -95,6 +95,11 @@ export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
     );
   }, [initialPlace, navigate]);
 
+  const allowLocation = useCallback(() => {
+    dismissLocationAsk();
+    locate();
+  }, [locate]);
+
   const toggleFavourite = () => {
     if (!place) return;
     setFavourites((prev) => {
