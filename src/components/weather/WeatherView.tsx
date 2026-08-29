@@ -217,6 +217,18 @@ export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
         </div>
       </div>
 
+      {isLoading && !data && (
+        <div className="relative mx-auto -mt-14 w-full max-w-2xl space-y-4 px-4 pb-16" aria-hidden>
+          {[96, 140, 120].map((h, i) => (
+            <div
+              key={i}
+              className="glass animate-pulse rounded-[1.75rem]"
+              style={{ height: h, animationDelay: `${i * 140}ms` }}
+            />
+          ))}
+        </div>
+      )}
+
       {data && (
         <div className="relative mx-auto -mt-14 w-full max-w-2xl space-y-4 px-4 pb-16">
           <DecisionCard bundle={data} />
