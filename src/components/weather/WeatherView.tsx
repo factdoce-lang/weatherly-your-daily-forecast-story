@@ -36,12 +36,14 @@ const FALLBACK: Place = {
 
 const STORE_KEY = "weatherly:favourites";
 const LAST_KEY = "weatherly:last";
+const LOC_ASKED_KEY = "weatherly:loc-asked";
 
 export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
   const navigate = useNavigate();
   const [place, setPlace] = useState<Place | null>(initialPlace ?? null);
   const [favourites, setFavourites] = useState<Place[]>([]);
   const [locating, setLocating] = useState(false);
+  const [askLocation, setAskLocation] = useState(false);
 
   useEffect(() => {
     try {
@@ -50,11 +52,23 @@ export function WeatherView({ initialPlace }: { initialPlace?: Place }) {
       if (!initialPlace) {
         const last = localStorage.getItem(LAST_KEY);
         setPlace(last ? (JSON.parse(last) as Place) : FALLBACK);
+        if (!last && !localStorage.getItem(LOC_ASKED_KEY) && "geolocation" in navigator) {
+          setAskLocation(true);
+        }
       }
     } catch {
       if (!initialPlace) setPlace(FALLBACK);
     }
   }, [initialPlace]);
+
+  const dismissLocationAsk = () => {
+    setAskLocation(false);
+    try {
+      localStorage.setItem(LOC_ASKED_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+  };
 
   useEffect(() => {
     if (place && !initialPlace) {
