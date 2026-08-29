@@ -3,6 +3,7 @@ import { useState } from "react";
 import logo from "@/assets/weatherly-logo.png";
 import { PlaceSearch } from "@/components/weather/PlaceSearch";
 import { reverseLookup, type Place } from "@/lib/weather";
+import { SiteFooter } from "@/components/weather/SiteFooter";
 
 export const Route = createFileRoute("/map")({
   head: () => ({
@@ -74,6 +75,7 @@ function MapPage() {
           />
         </div>
       </div>
+      <SiteFooter />
     </main>
   );
 }
