@@ -41,6 +41,12 @@ export type WeatherBundle = {
     uv: number;
     isDay: boolean;
   }>;
+  minutely: Array<{
+    time: string;
+    precipitation: number;
+    precipProbability: number;
+    weatherCode: number;
+  }>;
   daily: Array<{
     date: string;
     max: number;
@@ -53,6 +59,7 @@ export type WeatherBundle = {
     uvMax: number;
     windMax: number;
   }>;
+
   air?:
     | {
         aqi: number;
