@@ -41,6 +41,12 @@ export type WeatherBundle = {
     uv: number;
     isDay: boolean;
   }>;
+  minutely: Array<{
+    time: string;
+    precipitation: number;
+    precipProbability: number;
+    weatherCode: number;
+  }>;
   daily: Array<{
     date: string;
     max: number;
@@ -53,6 +59,7 @@ export type WeatherBundle = {
     uvMax: number;
     windMax: number;
   }>;
+
   air?:
     | {
         aqi: number;
@@ -129,9 +136,12 @@ export async function fetchWeather(place: Place): Promise<WeatherBundle> {
       "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl,visibility,is_day,uv_index",
     hourly:
       "temperature_2m,apparent_temperature,precipitation,precipitation_probability,weather_code,cloud_cover,wind_speed_10m,uv_index,is_day",
+    minutely_15: "precipitation,precipitation_probability,weather_code",
+    forecast_minutely_15: "48",
     daily:
       "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset,uv_index_max,wind_speed_10m_max",
   });
+
 
   const airParams = new URLSearchParams({
     latitude: String(place.latitude),
@@ -174,7 +184,15 @@ export async function fetchWeather(place: Place): Promise<WeatherBundle> {
     isDay: Boolean(w.hourly.is_day?.[i]),
   }));
 
+  const minutely = ((w.minutely_15?.time as string[] | undefined) ?? []).map((time, i) => ({
+    time,
+    precipitation: w.minutely_15.precipitation?.[i] ?? 0,
+    precipProbability: w.minutely_15.precipitation_probability?.[i] ?? 0,
+    weatherCode: w.minutely_15.weather_code?.[i] ?? 0,
+  }));
+
   const daily = (w.daily.time as string[]).map((date, i) => ({
+
     date,
     max: w.daily.temperature_2m_max[i],
     min: w.daily.temperature_2m_min[i],
@@ -208,6 +226,8 @@ export async function fetchWeather(place: Place): Promise<WeatherBundle> {
       uv: w.current.uv_index ?? 0,
     },
     hourly,
+    minutely,
+
     daily,
     air,
   };

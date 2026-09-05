@@ -165,49 +165,102 @@ export type PrecipWindow = {
   peakIso: string;
   peakMm: number;
   label: string;
+  startsInMinutes: number;
 };
 
-/** Find the next rain window within the next 24 hours from hourly precipitation. */
-export function nextPrecipWindow(bundle: WeatherBundle): PrecipWindow | null {
-  const start = currentHourIndex(bundle);
-  const slice = bundle.hourly.slice(start, start + 25);
-  const wet = (i: number) =>
-    slice[i] !== undefined && (slice[i]!.precipitation >= 0.15 || slice[i]!.precipProbability >= 55);
+type PrecipSample = {
+  time: string;
+  /** mm per hour */
+  rate: number;
+  probability: number;
+  stepMinutes: number;
+};
 
-  let s = -1;
-  for (let i = 0; i < slice.length; i++) {
-    if (wet(i)) {
-      s = i;
-      break;
-    }
+function nowKey(bundle: WeatherBundle) {
+  return cityNow(bundle).toISOString().slice(0, 16);
+}
+
+function minutesBetween(fromKey: string, iso: string) {
+  const toMs = (s: string) => Date.parse(`${s.slice(0, 16)}:00Z`);
+  return Math.round((toMs(iso) - toMs(fromKey)) / 60000);
+}
+
+/**
+ * Highest-resolution precipitation series available: 15-minute nowcast
+ * (radar-assisted where Open-Meteo has coverage) for the next hours, then the
+ * hourly model for the rest of the day.
+ */
+export function precipSeries(bundle: WeatherBundle): PrecipSample[] {
+  const key = nowKey(bundle);
+  const out: PrecipSample[] = [];
+
+  for (const m of bundle.minutely ?? []) {
+    const delta = minutesBetween(key, m.time);
+    if (delta < -15 || delta > 12 * 60) continue;
+    out.push({
+      time: m.time,
+      rate: (m.precipitation ?? 0) * 4, // 15-min accumulation → mm/h
+      probability: m.precipProbability ?? 0,
+      stepMinutes: 15,
+    });
   }
+
+  const lastMinutely = out.length ? minutesBetween(key, out[out.length - 1]!.time) : -Infinity;
+  for (const h of bundle.hourly) {
+    const delta = minutesBetween(key, h.time);
+    if (delta <= lastMinutely || delta < -30 || delta > 24 * 60) continue;
+    out.push({
+      time: h.time,
+      rate: h.precipitation ?? 0,
+      probability: h.precipProbability ?? 0,
+      stepMinutes: 60,
+    });
+  }
+
+  return out;
+}
+
+/** Is it actually raining/snowing right now? */
+export function rainingNow(bundle: WeatherBundle): boolean {
+  const kind = codeToKind(bundle.current.weatherCode);
+  if (["rain", "heavy-rain", "thunder", "snow"].includes(kind)) return true;
+  if ((bundle.current.precipitation ?? 0) >= 0.05) return true;
+  const first = precipSeries(bundle)[0];
+  return Boolean(first && (first.rate >= 0.2 || first.probability >= 60));
+}
+
+/** Find the next rain window within the next 24 hours. */
+export function nextPrecipWindow(bundle: WeatherBundle): PrecipWindow | null {
+  const series = precipSeries(bundle);
+  if (!series.length) return null;
+  const key = nowKey(bundle);
+
+  const wet = (s?: PrecipSample) => Boolean(s && (s.rate >= 0.08 || s.probability >= 40));
+
+  let s = series.findIndex((x) => wet(x));
   if (s === -1) return null;
 
   let e = s;
-  while (e + 1 < slice.length && wet(e + 1)) e++;
+  while (e + 1 < series.length && wet(series[e + 1])) e++;
 
   let peak = s;
-  for (let i = s; i <= e; i++) {
-    if (slice[i]!.precipitation > slice[peak]!.precipitation) peak = i;
-  }
+  for (let i = s; i <= e; i++) if (series[i]!.rate > series[peak]!.rate) peak = i;
 
-  // Interpolate onset/end inside the boundary hours using probability ramp.
-  const onsetFraction = s === 0 ? 0 : 1 - Math.min(slice[s]!.precipProbability / 100, 0.9);
-  const endFraction = Math.min(slice[e]!.precipProbability / 100, 0.9);
+  const endSample = series[e]!;
+  const endIsoWithStep = endSample.time;
 
   return {
-    startIso: slice[s]!.time,
-    startFraction: onsetFraction,
-    endIso: slice[e]!.time,
-    endFraction,
-    peakIso: slice[peak]!.time,
-    peakMm: slice[peak]!.precipitation,
-    label: `${interpolatedLabel(slice[s]!.time, onsetFraction)} – ${interpolatedLabel(
-      slice[e]!.time,
-      endFraction,
-    )}`,
+    startIso: series[s]!.time,
+    startFraction: 0,
+    endIso: endIsoWithStep,
+    endFraction: Math.min(endSample.stepMinutes / 60, 1),
+    peakIso: series[peak]!.time,
+    peakMm: series[peak]!.rate,
+    startsInMinutes: Math.max(minutesBetween(key, series[s]!.time), 0),
+    label: `${fmtTime(series[s]!.time)} – ${interpolatedLabel(endIsoWithStep, Math.min(endSample.stepMinutes / 60, 1))}`,
   };
 }
+
 
 export type Decision = {
   glyph: string;
@@ -227,6 +280,20 @@ export function buildDecision(bundle: WeatherBundle): Decision {
     `UV ${uvWord(c.uv)}`,
   ];
 
+  if (rainingNow(bundle)) {
+    const heavy = (win?.peakMm ?? c.precipitation) >= 4 || codeToKind(c.weatherCode) === "thunder";
+    return {
+      glyph: heavy ? "⛈️" : "☔",
+      headline: heavy
+        ? "Heavy rain right now — wait it out if you can"
+        : "It's raining right now — take an umbrella",
+      detail: win
+        ? `${codeLabel(c.weatherCode)} • wet spell expected until ${interpolatedLabel(win.endIso, win.endFraction)}.`
+        : `${codeLabel(c.weatherCode)} • showers easing shortly.`,
+      bullets,
+      tone: "wet",
+    };
+  }
   if (win && win.peakMm >= 4) {
     return {
       glyph: "⛈️",
@@ -237,21 +304,18 @@ export function buildDecision(bundle: WeatherBundle): Decision {
     };
   }
   if (win) {
-    const soon = win.startIso.slice(11, 13);
     return {
       glyph: "☔",
       headline:
-        Number(soon) - cityNow(bundle).getUTCHours() <= 1
-          ? "Carry an umbrella — rain starting shortly"
-          : `You probably won't need an umbrella until ${interpolatedLabel(
-              win.startIso,
-              win.startFraction,
-            )}`,
+        win.startsInMinutes <= 60
+          ? `Carry an umbrella — rain starting in about ${Math.max(win.startsInMinutes, 5)} min`
+          : `You probably won't need an umbrella until ${fmtTime(win.startIso)}`,
       detail: `Rain likely ${win.label}.`,
       bullets,
       tone: "wet",
     };
   }
+
   if (aqi >= 100) {
     return {
       glyph: "😷",
@@ -347,12 +411,17 @@ export function buildTimeline(bundle: WeatherBundle): TimelineEvent[] {
 
   const win = nextPrecipWindow(bundle);
   if (win) {
-    events.push({
-      at: interpolatedLabel(win.startIso, win.startFraction),
-      glyph: "🌧️",
-      title: "Rain begins",
-      note: `${win.peakMm >= 4 ? "Heavy" : "Light to moderate"} spell starting`,
-    });
+    const now = rainingNow(bundle) && win.startsInMinutes <= 15;
+    if (!now) {
+      events.push({
+        at: interpolatedLabel(win.startIso, win.startFraction),
+        glyph: "🌧️",
+        title: "Rain begins",
+        note: `${win.peakMm >= 4 ? "Heavy" : "Light to moderate"} • ${Math.round(win.peakMm * 10) / 10} mm/h peak`,
+      });
+    }
+
+
     if (win.peakIso !== win.startIso) {
       events.push({
         at: fmtTime(win.peakIso),
