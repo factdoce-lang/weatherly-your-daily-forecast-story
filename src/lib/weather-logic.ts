@@ -280,6 +280,20 @@ export function buildDecision(bundle: WeatherBundle): Decision {
     `UV ${uvWord(c.uv)}`,
   ];
 
+  if (rainingNow(bundle)) {
+    const heavy = (win?.peakMm ?? c.precipitation) >= 4 || codeToKind(c.weatherCode) === "thunder";
+    return {
+      glyph: heavy ? "⛈️" : "☔",
+      headline: heavy
+        ? "Heavy rain right now — wait it out if you can"
+        : "It's raining right now — take an umbrella",
+      detail: win
+        ? `${codeLabel(c.weatherCode)} • wet spell expected until ${interpolatedLabel(win.endIso, win.endFraction)}.`
+        : `${codeLabel(c.weatherCode)} • showers easing shortly.`,
+      bullets,
+      tone: "wet",
+    };
+  }
   if (win && win.peakMm >= 4) {
     return {
       glyph: "⛈️",
@@ -290,21 +304,18 @@ export function buildDecision(bundle: WeatherBundle): Decision {
     };
   }
   if (win) {
-    const soon = win.startIso.slice(11, 13);
     return {
       glyph: "☔",
       headline:
-        Number(soon) - cityNow(bundle).getUTCHours() <= 1
-          ? "Carry an umbrella — rain starting shortly"
-          : `You probably won't need an umbrella until ${interpolatedLabel(
-              win.startIso,
-              win.startFraction,
-            )}`,
+        win.startsInMinutes <= 60
+          ? `Carry an umbrella — rain starting in about ${Math.max(win.startsInMinutes, 5)} min`
+          : `You probably won't need an umbrella until ${fmtTime(win.startIso)}`,
       detail: `Rain likely ${win.label}.`,
       bullets,
       tone: "wet",
     };
   }
+
   if (aqi >= 100) {
     return {
       glyph: "😷",
