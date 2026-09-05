@@ -184,7 +184,15 @@ export async function fetchWeather(place: Place): Promise<WeatherBundle> {
     isDay: Boolean(w.hourly.is_day?.[i]),
   }));
 
+  const minutely = ((w.minutely_15?.time as string[] | undefined) ?? []).map((time, i) => ({
+    time,
+    precipitation: w.minutely_15.precipitation?.[i] ?? 0,
+    precipProbability: w.minutely_15.precipitation_probability?.[i] ?? 0,
+    weatherCode: w.minutely_15.weather_code?.[i] ?? 0,
+  }));
+
   const daily = (w.daily.time as string[]).map((date, i) => ({
+
     date,
     max: w.daily.temperature_2m_max[i],
     min: w.daily.temperature_2m_min[i],
