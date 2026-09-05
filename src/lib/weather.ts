@@ -136,9 +136,12 @@ export async function fetchWeather(place: Place): Promise<WeatherBundle> {
       "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl,visibility,is_day,uv_index",
     hourly:
       "temperature_2m,apparent_temperature,precipitation,precipitation_probability,weather_code,cloud_cover,wind_speed_10m,uv_index,is_day",
+    minutely_15: "precipitation,precipitation_probability,weather_code",
+    forecast_minutely_15: "48",
     daily:
       "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset,uv_index_max,wind_speed_10m_max",
   });
+
 
   const airParams = new URLSearchParams({
     latitude: String(place.latitude),
