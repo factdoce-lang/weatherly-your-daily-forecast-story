@@ -411,12 +411,14 @@ export function buildTimeline(bundle: WeatherBundle): TimelineEvent[] {
 
   const win = nextPrecipWindow(bundle);
   if (win) {
+    const now = rainingNow(bundle) && win.startsInMinutes <= 15;
     events.push({
-      at: interpolatedLabel(win.startIso, win.startFraction),
+      at: now ? "NOW" : interpolatedLabel(win.startIso, win.startFraction),
       glyph: "🌧️",
-      title: "Rain begins",
-      note: `${win.peakMm >= 4 ? "Heavy" : "Light to moderate"} spell starting`,
+      title: now ? "Rain falling" : "Rain begins",
+      note: `${win.peakMm >= 4 ? "Heavy" : "Light to moderate"} • ${Math.round(win.peakMm * 10) / 10} mm/h peak`,
     });
+
     if (win.peakIso !== win.startIso) {
       events.push({
         at: fmtTime(win.peakIso),
