@@ -226,6 +226,8 @@ export async function fetchWeather(place: Place): Promise<WeatherBundle> {
       uv: w.current.uv_index ?? 0,
     },
     hourly,
+    minutely,
+
     daily,
     air,
   };
